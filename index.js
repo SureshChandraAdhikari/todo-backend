@@ -4,6 +4,9 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const { z } = require("zod")
+const cors = require('cors');
+; // Enable CORS for all routes
+
 
 mongoose.connect(
   "mongodb+srv://loginsureshadhikari:GlX7Qd4zifIvjOXl@cluster0.zjjj9.mongodb.net/Suresh"
@@ -12,6 +15,7 @@ mongoose.connect(
 const SECRET_KEY = "This_is_Secrete";
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 app.post("/signUp", async function (req, res) {
   try {

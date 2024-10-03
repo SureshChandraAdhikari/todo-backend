@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f7;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .error {
+            color: red;
+            margin-bottom: 10px;
+        }
+
+        .todo-list {
+            margin-top: 20px;
+        }
+
+        .todo-item {
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Todo App</h2>
+
+    <!-- Sign Up Form -->
+    <form id="signup-form">
+        <h3>Sign Up</h3>
+        <label for="signup-email">Email</label>
+        <input type="email" id="signup-email" required>
+        <label for="signup-password">Password (4-50 characters)</label>
+        <input type="password" id="signup-password" required>
+        <label for="signup-name">Name</label>
+        <input type="text" id="signup-name" required>
+        <div class="error" id="signup-error"></div>
+        <button type="submit">Sign Up</button>
+    </form>
+
+    <!-- Sign In Form -->
+    <form id="signin-form" class="hidden">
+        <h3>Sign In</h3>
+        <label for="signin-email">Email</label>
+        <input type="email" id="signin-email" required>
+        <label for="signin-password">Password</label>
+        <input type="password" id="signin-password" required>
+        <div class="error" id="signin-error"></div>
+        <button type="submit">Sign In</button>
+    </form>
+
+    <!-- Create Todo Form -->
+    <form id="todo-form" class="hidden">
+        <h3>Create Todo</h3>
+        <label for="todo-title">Todo Title</label>
+        <input type="text" id="todo-title" required>
+        <button type="submit">Add Todo</button>
+        <div class="error" id="todo-error"></div>
+    </form>
+
+    <!-- Todo List -->
+    <div class="todo-list hidden" id="todo-list-container">
+        <h3>Your Todos</h3>
+        <div id="todo-list"></div>
+    </div>
+</div>
+
+<script>
+    let token = '';
+
+    // Helper function to display error messages
+    function displayError(errorElementId, message) {
+        const errorElement = document.getElementById(errorElementId);
+        errorElement.textContent = message;
+        errorElement.style.display = message ? 'block' : 'none';
+    }
+
+    // Sign Up
+    document.getElementById('signup-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+        const name = document.getElementById('signup-name').value;
+
+        const response = await fetch('http://localhost:3000/signUp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password, name }),
+        });
+
+        const result = await response.json();
+        if (result.message === "SignUp successful") {
+            alert(result.message);
+            document.getElementById('signup-form').classList.add('hidden');
+            document.getElementById('signin-form').classList.remove('hidden');
+        } else {
+            displayError('signup-error', result.error?.message || result.message);
+        }
+    });
+
+    // Sign In
+    document.getElementById('signin-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const email = document.getElementById('signin-email').value;
+        const password = document.getElementById('signin-password').value;
+
+        const response = await fetch('http://localhost:3000/signIn', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+        });
+
+        const result = await response.json();
+        if (result.token) {
+            token = result.token;
+            alert(result.message);
+            document.getElementById('signin-form').classList.add('hidden');
+            document.getElementById('todo-form').classList.remove('hidden');
+            document.getElementById('todo-list-container').classList.remove('hidden');
+            getTodos();
+        } else {
+            displayError('signin-error', result.message);
+        }
+    });
+
+    // Create Todo
+    document.getElementById('todo-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const title = document.getElementById('todo-title').value;
+
+        const response = await fetch('http://localhost:3000/todo', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'token': token,
+            },
+            body: JSON.stringify({ title }),
+        });
+
+        const result = await response.json();
+        if (result.message === "Todo created successfully") {
+            getTodos();
+        } else {
+            displayError('todo-error', result.message);
+        }
+    });
+
+    // Fetch Todos
+    async function getTodos() {
+        const response = await fetch('http://localhost:3000/todos', {
+            headers: {
+                'token': token,
+            },
+        });
+
+        const todos = await response.json();
+        const todoList = document.getElementById('todo-list');
+        todoList.innerHTML = ''; // Clear existing todos
+
+        if (todos.length === 0) {
+            todoList.textContent = 'No todos found.';
+        } else {
+            todos.forEach(todo => {
+                const div = document.createElement('div');
+                div.className = 'todo-item';
+                div.textContent = todo.title;
+                todoList.appendChild(div);
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
